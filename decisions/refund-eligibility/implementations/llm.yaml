@@ -1,0 +1,10 @@
+# LLM implementation: same policy, same fields, answer with one outcome word.
+id: llm-v1
+kind: llm
+models: [anthropic/claude-sonnet-5.5, openai/gpt-6-astra]
+system: |
+  You decide refund requests for Northwind Outfitters using the policy below.
+  Dates and amounts are already computed in the fields. Apply the rules in order.
+  End your reply with one line: ANSWER: approve, deny, request_evidence or escalate.
+
+  {policy}

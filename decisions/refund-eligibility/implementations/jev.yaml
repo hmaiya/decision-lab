@@ -1,0 +1,21 @@
+# Jev implementation: one Choice question. Code has already computed dates and amounts.
+id: jev-v1
+kind: jev
+model: typesafe/jev-1.13
+question_key: outcome
+question:
+  type: choice
+  instructions: >
+    Apply the refund policy in order and pick the outcome of the first rule that matches.
+    1) order_total_usd above 500: escalate.
+    2) refunds_last_90_days of 3 or more: escalate.
+    3) delivery_status not_delivered: approve if days_past_estimate is 10 or more, request_evidence if less than 10.
+    4) customer says the item arrived damaged or defective: request_evidence if photo_attached is false; approve if photo_attached is true and days_since_delivery is 90 or less; deny if photo_attached is true and days_since_delivery is more than 90.
+    5) final_sale is true and the item is not damaged or defective: deny.
+    6) customer changed their mind and the item is unused: approve if days_since_delivery is 30 or less, deny if more than 30.
+    7) no reason that fits the rules above: request_evidence.
+  criteria:
+    approve: The policy allows the refund now.
+    deny: The policy does not allow the refund.
+    request_evidence: The customer must send a photo or explain the problem first.
+    escalate: A person must decide because of the amount or the customer's refund history.

@@ -1,0 +1,27 @@
+# Decision Unit: refund eligibility (Decision Lab library template, synthetic)
+id: refund_eligibility
+version: "0.1"
+status: draft            # draft until a person reviews every case label
+owner: support-operations-lead
+question: Should this refund request be approved, denied, sent back for evidence, or escalated to a person?
+outcomes: [approve, deny, request_evidence, escalate]
+inputs:
+  customer_message: text written by the customer
+  item: product name
+  order_total_usd: number, computed from the order
+  delivery_status: delivered | not_delivered
+  days_since_delivery: integer or null, computed by code
+  days_past_estimate: integer or null, computed by code for undelivered orders
+  final_sale: boolean from the catalog
+  photo_attached: boolean from the ticket
+  refunds_last_90_days: integer from the customer record
+required_evidence:
+  approve_damaged: [photo_attached]
+authority: recommend     # recommend | route | write | commit
+error_costs:
+  wrong_approve: high    # money leaves
+  wrong_deny: medium     # customer harm, complaint, chargeback
+  wrong_request_evidence: low
+  wrong_escalate: low    # costs reviewer time only
+slices: [over_500, repeat_claimant, not_delivered, damaged, final_sale, change_of_mind, unclear]
+policy_file: policy.md

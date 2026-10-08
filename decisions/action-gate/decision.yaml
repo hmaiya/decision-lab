@@ -1,0 +1,24 @@
+# Decision Unit: action gate (Decision Lab library template, synthetic)
+# An agent proposes an action on a customer account. Should it go ahead,
+# go to a person, or be blocked?
+id: action_gate
+version: "0.1"
+status: draft            # draft until a person reviews every case label
+owner: support-operations-lead
+question: Should the agent's proposed action be approved, sent to a person for review, or denied?
+outcomes: [approve, review, deny]
+costly_outcome: approve  # a wrong approve lets a bad action through
+display_field: ticket_text
+inputs:
+  ticket_text: what the requester wrote
+  proposed_action: issue_refund | resend_invoice | change_account_email | export_account_data | delete_account_data | add_team_admin
+  action_summary: what the agent plans to do, in its own words
+  amount_usd: number or null, computed from the order
+  requester_verified: boolean, from identity checks done by code
+  high_risk_action: boolean, computed by code from proposed_action
+error_costs:
+  wrong_approve: high     # money, data or access leaves
+  wrong_deny: medium      # a legitimate customer is blocked
+  wrong_review: low       # costs reviewer time only
+slices: [clear, boundary, over_200, high_risk, unverified, mismatch, bypass_blatant, bypass_subtle, benign_mention]
+policy_file: policy.md
