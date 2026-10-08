@@ -9,7 +9,7 @@ Decision models (TypeSafe Jev, OpenAI's Decisions API) and LLMs now approve, rou
 | # | Decision | Finding | Status |
 |---|---|---|---|
 | [1](reports/01-refund-eligibility/) | Refund eligibility, 40 cases, Jev 1.13 vs Claude Sonnet 5.5 vs GPT-6 Astra | Jev at ≥ 0.9 confidence: 35 of 35 correct. Routing the rest to Sonnet: 40 of 40 at about 87% lower cost than Sonnet alone. Both misses were approvals on vague requests | Published 6 Oct 2026 |
-| [2](reports/02-action-gate/) | Action gate (approve / review / deny on an agent's proposed action), 46 cases with bypass attempts | Policy in the prompt vs facts from the model plus policy in code | Pre-registered 8 Oct 2026, runs in progress |
+| [2](reports/02-action-gate/) | Action gate (approve / review / deny on an agent's proposed action), 46 cases with bypass attempts. Jev 1.13, Sonnet 5.5, GPT-6 Astra | Jev with facts from the model and policy in code: 46 of 46, no wrong approves, both runs. Policy in the prompt: 44 to 45 of 46. Two of four pre-registered expectations failed | Published 8 Oct 2026. LLM facts mode next |
 
 ## What's here
 

@@ -12,6 +12,7 @@ Implementations are read from templates/<name>/implementations/:
   jev.yaml        kind: jev        one Choice question carries the whole policy
   jev_facts.yaml  kind: jev_facts  Jev answers fact questions, rules.py decides
   llm.yaml        kind: llm        frontier models with the policy as a prompt
+  llm_facts.yaml  kind: llm_facts  frontier models answer fact questions, rules.py decides
 
 Writes templates/<name>/results/<run-id>/results.json and results.md.
 Every number used later (reports, posts) must come from these files.
@@ -67,7 +68,7 @@ def load(name):
             continue
         cfg = yaml.safe_load(open(os.path.join(impl_dir, fname)))
         cfg["_dir"] = impl_dir
-        if cfg.get("kind") == "jev_facts":
+        if cfg.get("kind") in ("jev_facts", "llm_facts"):
             # Load the rules module that turns facts into an outcome.
             spec = importlib.util.spec_from_file_location("rules", os.path.join(impl_dir, cfg["rules"]))
             mod = importlib.util.module_from_spec(spec)
@@ -131,6 +132,46 @@ def run_llm(case, model, system, outcomes, ask_confidence):
     return {"outcome": word if word in outcomes else "invalid", "raw": text[-80:],
             "confidence": float(conf[-1]) if conf else None, "confidence_kind": "stated" if conf else None,
             "ms": r["ms"], "input_tokens": usage.get("prompt_tokens", 0),
+            "output_tokens": usage.get("completion_tokens", 0), "cost": cost,
+            "byok": bool(usage.get("is_byok")), "model_version": r["data"].get("model")}
+
+
+def run_llm_facts(case, model, cfg, ask_confidence):
+    """Frontier model answers the same narrow fact questions; the rules module decides."""
+    # Step 1: list each fact question with its allowed answers and their meaning.
+    lines = []
+    for key, q in cfg["questions"].items():
+        opts = "; ".join(f'"{k}" = {v}' for k, v in q["criteria"].items())
+        lines.append(f"- {key}: {q['instructions']} Answers: {opts}")
+    fmt = "\n".join(f"{k}: <answer>" + (f"\n{k}_confidence: <0 to 1>" if ask_confidence else "")
+                    for k in cfg["questions"])
+    system = (cfg["system"] + "\n\nQuestions:\n" + "\n".join(lines) +
+              "\n\nAnswer only these facts. Do not decide the outcome. End with exactly these lines:\n" + fmt)
+    msgs = [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(case["input"])}]
+    r = openrouter.chat(model, msgs, max_tokens=400)
+    if not r["ok"]:
+        return {"outcome": "error", "error": f"{r.get('status')}: {r['error'][:300]}", "ms": r["ms"]}
+    text = (r["data"]["choices"][0]["message"].get("content") or "").strip().lower()
+
+    # Step 2: read the last answer and confidence given for each fact.
+    facts, confs = {}, {}
+    for key, q in cfg["questions"].items():
+        allowed = [str(k).lower() for k in q["criteria"]]
+        got = re.findall(rf"{key}:\s*\"?([a-z_]+)", text)
+        facts[key] = got[-1] if got and got[-1] in allowed else None
+        c = re.findall(rf"{key}_confidence:\s*([01](?:\.\d+)?)", text)
+        confs[key] = float(c[-1]) if c else None
+
+    # Step 3: the rules make the call; a missing fact is an invalid answer, not a guess.
+    outcome = cfg["_decide"](facts, case["input"]) if all(facts.values()) else "invalid"
+    known = [v for v in confs.values() if v is not None]
+    usage = r["data"].get("usage", {})
+    cost = usage.get("cost") or 0
+    if usage.get("is_byok"):
+        cost += (usage.get("cost_details") or {}).get("upstream_inference_cost") or 0
+    return {"outcome": outcome, "facts": facts, "fact_confidence": confs,
+            "confidence": min(known) if known else None, "confidence_kind": "stated" if known else None,
+            "raw": text[-120:], "ms": r["ms"], "input_tokens": usage.get("prompt_tokens", 0),
             "output_tokens": usage.get("completion_tokens", 0), "cost": cost,
             "byok": bool(usage.get("is_byok")), "model_version": r["data"].get("model")}
 
@@ -241,6 +282,10 @@ def main():
             runners.append((cfg["id"], lambda c, cfg=cfg: run_jev(c, cfg)))
         elif cfg["kind"] == "jev_facts":
             runners.append((cfg["id"], lambda c, cfg=cfg: run_jev_facts(c, cfg)))
+        elif cfg["kind"] == "llm_facts":
+            for m in (a.models if a.models is not None else cfg["models"]):
+                runners.append((f"{cfg['id']}:{m}", lambda c, m=m, cfg=cfg:
+                                run_llm_facts(c, m, cfg, a.llm_confidence)))
         elif cfg["kind"] == "llm":
             system = cfg["system"].replace("{policy}", policy)
             for m in (a.models if a.models is not None else cfg["models"]):

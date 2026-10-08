@@ -1,16 +1,20 @@
-# Calibration report #1: does a decision model's confidence tell you when to trust it?
+# Calibration report #1: a model 100x cheaper was right every time it said it was sure
 
 **Decision Lab. 6 October 2026. Refund eligibility, 40 cases, three engines, two runs.**
 
 ![Refund eligibility: all the uncertainty sat in one slice](calibration.png)
 
-## The question
+## Why it matters
 
-Decision models are becoming a category. Jev returns a typed answer with a confidence score. OpenAI announced its Decisions API at DevDay on 29 September. More will follow.
+Agents now make small business calls all day: approve this refund, escalate this ticket, block this action. Most teams send every one of them to a frontier LLM. On this decision that cost about $3 per 1,000 calls and 2 to 3 seconds each.
 
-The useful question is not "which model is most accurate." It is: **when the model says it is sure, is it right, on my decision?** If yes, you can let it decide alone above a cutoff and send the rest to a bigger model or a person.
+Decision models (TypeSafe's Jev, OpenAI's Decisions API) answer the same kind of question for about $0.03 per 1,000, in about a quarter of a second, with a confidence score attached. If that score can be trusted, the design is simple: let the cheap model decide when it is sure, and send the rest to a bigger model or a person.
 
-This report tests that on one business decision.
+So the question is not "which model is most accurate." It is: **when the model says it is sure, is it right, on my decision?**
+
+**The answer here:** at 0.9 confidence or above, Jev was right 35 of 35 times. Sending the other 5 cases to Claude Sonnet 5.5 gave 40 of 40 at about 87% lower cost than Sonnet on everything. Both of Jev's misses were approvals on vague requests, the expensive direction, and both came in below 0.7.
+
+**The catch:** it held because the hard cases were vague ones. Builders have since found cases where confidence stays high on wrong answers (see "What the community found"). Check it per slice of your own decision before you route on it.
 
 ## Setup
 
