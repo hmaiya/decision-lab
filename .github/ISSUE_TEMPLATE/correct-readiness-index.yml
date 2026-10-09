@@ -1,0 +1,59 @@
+name: Correct a Readiness Index row
+description: Submit public evidence that changes a company classification
+title: "Readiness Index correction: [Company]"
+labels:
+  - readiness-index
+body:
+  - type: input
+    id: company
+    attributes:
+      label: Company
+      placeholder: Company name
+    validations:
+      required: true
+  - type: dropdown
+    id: dimension
+    attributes:
+      label: Dimension
+      options:
+        - Model or configuration comparison
+        - Trace or production evaluation
+        - Action and tool validation
+        - Human acceptance
+        - Workflow simulation
+        - Business outcome
+    validations:
+      required: true
+  - type: dropdown
+    id: proposed
+    attributes:
+      label: Proposed classification
+      options:
+        - Shown
+        - Partial
+        - Not found publicly
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: First-party public source
+      description: Link directly to product documentation, an engineering post, research, or a named customer story.
+      placeholder: https://company.com/source
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: What the source establishes
+      description: Quote or summarize the exact product behavior that changes the row.
+    validations:
+      required: true
+  - type: input
+    id: relationship
+    attributes:
+      label: Relationship to the company
+      description: Employee, customer, researcher, or none.
+    validations:
+      required: true
+
